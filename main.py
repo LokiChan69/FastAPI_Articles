@@ -1,20 +1,21 @@
-from fastapi import FastAPI, HTTPException, Body
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import sqlite3
 import uvicorn
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
+import os
 
-
-
+# Абсолютный путь к articles.db, чтобы он всегда сохранялся рядом с main.py
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "articles.db")
 
 class ArticleCreate(BaseModel):
     title: str
     content: str
 
-
 def get_db():
-    conn = sqlite3.connect("articles.db")
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -32,17 +33,16 @@ async def lifespan(app: FastAPI):
     conn.commit()
     conn.close()
     yield
+
 app = FastAPI(lifespan=lifespan)
 
-# Позволяет любому источнику обращаться к API (в разработке)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # или укажи конкретный адрес вместо "*"
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 @app.get("/")
 def root():
